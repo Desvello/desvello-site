@@ -2712,55 +2712,92 @@ interfonia: {
   // Disponibiliza a função global para o handler dos cards
   window.openSolutionModal = open;
 })();
+// Slider avançado com vídeos (play/pause) e dots automáticos
+document.addEventListener('DOMContentLoaded', () => {
 
-// Slider simples para os destaques (hero-slider)
-document.addEventListener('DOMContentLoaded', function(){
-  const slider = document.querySelector('.hero-slider');
-  if(!slider) return;
+  const sliderTrack = document.querySelector('.hero-slider__track');
+  const slides = Array.from(document.querySelectorAll('.hero-slide'));
+  const dotsContainer = document.querySelector('.hero-slider__dots');
 
-  const slides = Array.from(slider.querySelectorAll('.hero-slide'));
-  const dots = Array.from(slider.querySelectorAll('.hero-slider__dots button'));
-  if(slides.length === 0) return;
+  if (!sliderTrack || slides.length === 0 || !dotsContainer) return;
 
-  let current = 0;
+  let currentIndex = 0;
   let timer = null;
+  const delay = 5000; // tempo entre os slides (ms)
 
-  function goTo(index){
-    current = (index + slides.length) % slides.length;
-    slides.forEach((slide, i)=>{
-      slide.classList.toggle('is-active', i === current);
+  // --- CRIAR DOTS AUTOMATICAMENTE ---
+  dotsContainer.innerHTML = "";
+  slides.forEach((slide, index) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.dataset.index = index;
+
+    if (index === 0) dot.classList.add("is-active");
+
+    dot.addEventListener("click", () => {
+      currentIndex = index;
+      goToSlide(currentIndex, true);
     });
-    dots.forEach((dot, i)=>{
-      dot.classList.toggle('is-active', i === current);
+
+    dotsContainer.appendChild(dot);
+  });
+
+  const dots = Array.from(dotsContainer.querySelectorAll("button"));
+
+
+  // --- CONTROLE DE VÍDEO ---
+  function pauseAllVideos() {
+    slides.forEach(slide => {
+      const video = slide.querySelector("video");
+      if (video) {
+        video.pause();
+        video.currentTime = 0; // reseta para sempre iniciar zerado
+      }
     });
   }
 
-  function start(){
-    stop();
-    if(slides.length <= 1) return;
-    timer = setInterval(function(){
-      goTo(current + 1);
-    }, 5000);
-  }
-
-  function stop(){
-    if(timer){
-      clearInterval(timer);
-      timer = null;
+  function playActiveVideo(index) {
+    const video = slides[index].querySelector("video");
+    if (video) {
+      video.play().catch(() => {});
     }
   }
 
-  dots.forEach((dot, index)=>{
-    dot.addEventListener('click', function(){
-      goTo(index);
-      start();
-    });
-  });
 
-  slider.addEventListener('mouseenter', stop);
-  slider.addEventListener('mouseleave', start);
+  // --- TROCAR DE SLIDE ---
+  function goToSlide(index, manual = false) {
+    currentIndex = (index + slides.length) % slides.length;
 
-  // inicia o slider
-  goTo(0);
-  start();
+    // trocar slide visível
+    slides.forEach((slide, i) =>
+      slide.classList.toggle("is-active", i === currentIndex)
+    );
+
+    // trocar dots ativos
+    dots.forEach((dot, i) =>
+      dot.classList.toggle("is-active", i === currentIndex)
+    );
+
+    // controlar vídeos
+    pauseAllVideos();
+    playActiveVideo(currentIndex);
+
+    // resetar timer automático
+    resetTimer();
+  }
+
+
+  // --- TIMER AUTOMÁTICO ---
+  function resetTimer() {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      currentIndex = (currentIndex + 1) % slides.length;
+      goToSlide(currentIndex);
+    }, delay);
+  }
+
+
+  // --- INICIAR SLIDER ---
+  goToSlide(0);
+
 });
